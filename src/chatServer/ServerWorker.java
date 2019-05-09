@@ -24,33 +24,6 @@ public class ServerWorker implements Runnable {
         isLoggedIn = loggedIn;
     }
 
-    @Override
-    public void run() {
-        try {
-            this.inputStream = clientSocket.getInputStream();
-            this.outputStream = clientSocket.getOutputStream();
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-            String lines;
-            while ((lines = bufferedReader.readLine()) != null) {
-                String tokens[] = lines.split(" ");
-                if (tokens[0].equalsIgnoreCase("msg")) {
-                    handleMessage(tokens);
-                } else if (tokens[0].equalsIgnoreCase("login")) {
-                    handleLogin(tokens);
-                } else if (tokens[0].equalsIgnoreCase("exit")) {
-                    handleLogOff();
-                    break;
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void send(ServerWorker sendTo, String message) throws IOException {
-        sendTo.getOutputStream().write((message + "\n").getBytes());
-    }
-
     public String getUserHandle() {
         return userHandle;
     }
@@ -91,6 +64,37 @@ public class ServerWorker implements Runnable {
         this.outputStream = outputStream;
     }
 
+    @Override
+    public void run() {
+        try {
+            handleClientSocket();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleClientSocket() throws IOException {
+        this.inputStream = clientSocket.getInputStream();
+        this.outputStream = clientSocket.getOutputStream();
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+        String lines;
+        while ((lines = bufferedReader.readLine()) != null) {
+            String tokens[] = lines.split(" ");
+            if (tokens[0].equalsIgnoreCase("msg")) {
+                handleMessage(lines);
+            } else if (tokens[0].equalsIgnoreCase("login")) {
+                handleLogin(tokens);
+            } else if (tokens[0].equalsIgnoreCase("exit")) {
+                handleLogOff();
+                break;
+            }
+        }
+    }
+
+    public static void send(ServerWorker sendTo, String message) throws IOException {
+        sendTo.getOutputStream().write((message + "\n").getBytes());
+    }
+
     private void handleLogin(String[] tokens) throws IOException {
         System.out.println("Handling Logins");
         if (tokens.length == 2) {
@@ -106,13 +110,15 @@ public class ServerWorker implements Runnable {
         }
     }
 
-    private void handleMessage(String[] tokens) throws IOException {
+    private void handleMessage(String line) throws IOException {
+        String[] tokens = line.split(" ", 3);
         if (tokens.length == 3) {
             String userHandle = tokens[1];
             String messageContent = tokens[2];
             for (ServerWorker serverWorker : this.server.getWorkerArrayList()) {
                 if (serverWorker.getUserHandle().equals(userHandle)) {
-                    send(serverWorker, userHandle + " send : " + messageContent);
+                    send(serverWorker, this.userHandle + " sent : " + messageContent);
+
                 }
             }
         } else {
