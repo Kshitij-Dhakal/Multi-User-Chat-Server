@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.Socket;
 
 public class ServerWorker implements Runnable {
+
     private boolean isLoggedIn;
     private Server server;
     private Socket clientSocket;
@@ -14,6 +15,10 @@ public class ServerWorker implements Runnable {
     public ServerWorker(Server server, Socket clientSocket) {
         this.server = server;
         this.clientSocket = clientSocket;
+    }
+
+    public static void send(ServerWorker sendTo, String message) throws IOException {
+        sendTo.getOutputStream().write((message + "\n").getBytes());
     }
 
     public boolean isLoggedIn() {
@@ -69,7 +74,7 @@ public class ServerWorker implements Runnable {
         try {
             handleClientSocket();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Connection Interrupted for " + this.getUserHandle());
         }
     }
 
@@ -79,7 +84,8 @@ public class ServerWorker implements Runnable {
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
         String lines;
         while ((lines = bufferedReader.readLine()) != null) {
-            String tokens[] = lines.split(" ");
+            String[] tokens = lines.split(" ");
+
             if (tokens[0].equalsIgnoreCase("msg")) {
                 handleMessage(lines);
             } else if (tokens[0].equalsIgnoreCase("login")) {
@@ -88,48 +94,49 @@ public class ServerWorker implements Runnable {
                 handleLogOff();
                 break;
             }
-        }
-    }
 
-    public static void send(ServerWorker sendTo, String message) throws IOException {
-        sendTo.getOutputStream().write((message + "\n").getBytes());
+        }
+        clientSocket.close();
     }
 
     private void handleLogin(String[] tokens) throws IOException {
-        System.out.println("Handling Logins");
         if (tokens.length == 2) {
             String userHandle = tokens[1];
-            String message = userHandle + " is online";
-            for (ServerWorker serverWorker : this.server.getWorkerArrayList()) {
+            String message = "online " + userHandle;
+            for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
                 send(serverWorker, message);
             }
             this.setUserHandle(userHandle);
-            this.server.getWorkerArrayList().add(this);
+            Server.getWorkerArrayList().add(this);
         } else {
             System.out.println("Failed to Login");
         }
     }
 
     private void handleMessage(String line) throws IOException {
+        boolean sent = false;
         String[] tokens = line.split(" ", 3);
         if (tokens.length == 3) {
             String userHandle = tokens[1];
             String messageContent = tokens[2];
-            for (ServerWorker serverWorker : this.server.getWorkerArrayList()) {
+            for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
                 if (serverWorker.getUserHandle().equals(userHandle)) {
-                    send(serverWorker, this.userHandle + " sent : " + messageContent);
-
+                    send(serverWorker, "message " + this.userHandle + " " + messageContent);
+                    sent = true;
                 }
             }
+        }
+        if (sent) {
+            send(this, "Send Success");
         } else {
-            System.out.println("Failed to send message");
+            send(this, "Send Failed");
         }
     }
 
     private void handleLogOff() throws IOException {
-        this.server.getWorkerArrayList().remove(this);
-        String msg = this.userHandle + " went offline.";
-        for (ServerWorker serverWorker : this.server.getWorkerArrayList()) {
+        Server.getWorkerArrayList().remove(this);
+        String msg = "offline " + this.userHandle;
+        for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
             send(serverWorker, msg);
         }
     }
