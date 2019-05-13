@@ -192,6 +192,7 @@ public class ServerWorker implements Runnable {
     private void handleLogOff() throws IOException {
         if (isLoggedIn) {
             Server.getWorkerArrayList().remove(this);
+            this.getClientSocket().close();
             isLoggedIn = false;
             String msg = "offline " + this.userHandle;
             for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
