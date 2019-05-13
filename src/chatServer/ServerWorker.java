@@ -2,6 +2,7 @@ package chatServer;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Iterator;
 
 public class ServerWorker implements Runnable {
 
@@ -17,8 +18,39 @@ public class ServerWorker implements Runnable {
         this.clientSocket = clientSocket;
     }
 
-    public static void send(ServerWorker sendTo, String message) throws IOException {
-        sendTo.getOutputStream().write((message + "\n").getBytes());
+    public static boolean send(ServerWorker sendTo, String message) {
+        try {
+            sendTo.getOutputStream().write((message + "\n").getBytes());
+            return true;
+        } catch (IOException e) {
+            Server.getWorkerArrayList().remove(sendTo);
+            Iterator<ServerWorker> iterator = Server.getWorkerArrayList().iterator();
+            sendAll(iterator, sendTo, iterator);
+        }
+        return false;
+    }
+
+    public static SendReturn send(Iterator<ServerWorker> serverWorkerIterator, ServerWorker sendTo, String message) {
+        SendReturn sendReturn = new SendReturn(false, serverWorkerIterator);
+        try {
+            sendTo.getOutputStream().write((message + "\n").getBytes());
+            sendReturn.sent = true;
+        } catch (IOException e) {
+            serverWorkerIterator.remove();
+            Iterator<ServerWorker> iterator = Server.getWorkerArrayList().iterator();
+            serverWorkerIterator = sendAll((Iterator<ServerWorker>) serverWorkerIterator, sendTo, (Iterator<ServerWorker>) iterator);
+            sendReturn.iterator = serverWorkerIterator;
+        }
+        return sendReturn;
+    }
+
+    private static Iterator<ServerWorker> sendAll(Iterator<ServerWorker> serverWorkerIterator, ServerWorker sendTo, Iterator<ServerWorker> iterator) {
+        while (iterator.hasNext()) {
+            ServerWorker next = iterator.next();
+            SendReturn send = send(iterator, next, "offline " + sendTo.getUserHandle());
+            serverWorkerIterator = send.iterator;
+        }
+        return serverWorkerIterator;
     }
 
     public boolean isLoggedIn() {
@@ -85,7 +117,6 @@ public class ServerWorker implements Runnable {
         String lines;
         while ((lines = bufferedReader.readLine()) != null) {
             String[] tokens = lines.split(" ");
-
             if (tokens[0].equalsIgnoreCase("msg")) {
                 handleMessage(lines);
             } else if (tokens[0].equalsIgnoreCase("login")) {
@@ -99,30 +130,45 @@ public class ServerWorker implements Runnable {
         clientSocket.close();
     }
 
-    private void handleLogin(String[] tokens) throws IOException {
+    private void handleLogin(String[] tokens) {
         if (tokens.length == 2) {
             String userHandle = tokens[1];
             String message = "online " + userHandle;
-            for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
-                send(serverWorker, message);
-            }
             this.setUserHandle(userHandle);
-            Server.getWorkerArrayList().add(this);
+            boolean alreadyLoggedIn = false;
+            for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
+                if (serverWorker.getUserHandle().equals(userHandle)) {
+                    alreadyLoggedIn = true;
+                }
+            }
+            if (alreadyLoggedIn) {
+                send(this, "login alreadyLoggedIn");
+            } else {
+                send(this, "login success");
+                for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
+                    send(this, "online " + serverWorker.getUserHandle());
+                    send(serverWorker, message);
+                }
+                Server.getWorkerArrayList().add(this);
+            }
         } else {
-            System.out.println("Failed to Login");
+            send(this, "Login failed");
         }
     }
 
-    private void handleMessage(String line) throws IOException {
+    private void handleMessage(String line) {
         boolean sent = false;
         String[] tokens = line.split(" ", 3);
         if (tokens.length == 3) {
             String userHandle = tokens[1];
             String messageContent = tokens[2];
-            for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
+            Iterator<ServerWorker> serverWorkerIterator = Server.getWorkerArrayList().iterator();
+            while (serverWorkerIterator.hasNext()) {
+                ServerWorker serverWorker = serverWorkerIterator.next();
                 if (serverWorker.getUserHandle().equals(userHandle)) {
-                    send(serverWorker, "message " + this.userHandle + " " + messageContent);
-                    sent = true;
+                    SendReturn send = send(serverWorkerIterator, serverWorker, "message " + this.userHandle + " " + messageContent);
+                    sent = send.sent;
+                    serverWorkerIterator = send.iterator;
                 }
             }
         }
@@ -133,11 +179,21 @@ public class ServerWorker implements Runnable {
         }
     }
 
-    private void handleLogOff() throws IOException {
+    private void handleLogOff() {
         Server.getWorkerArrayList().remove(this);
         String msg = "offline " + this.userHandle;
         for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
             send(serverWorker, msg);
+        }
+    }
+
+    private static class SendReturn {
+        public boolean sent;
+        public Iterator<ServerWorker> iterator;
+
+        public SendReturn(boolean sent, Iterator<ServerWorker> iterator) {
+            this.sent = sent;
+            this.iterator = iterator;
         }
     }
 }
