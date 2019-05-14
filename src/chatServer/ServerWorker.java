@@ -60,14 +60,6 @@ public class ServerWorker implements Runnable {
         return serverWorkerIterator;
     }
 
-    public boolean isLoggedIn() {
-        return isLoggedIn;
-    }
-
-    public void setLoggedIn(boolean loggedIn) {
-        isLoggedIn = loggedIn;
-    }
-
     public String getUserHandle() {
         return userHandle;
     }
@@ -76,36 +68,12 @@ public class ServerWorker implements Runnable {
         this.userHandle = userHandle;
     }
 
-    public Server getServer() {
-        return server;
-    }
-
-    public void setServer(Server server) {
-        this.server = server;
-    }
-
     public Socket getClientSocket() {
         return clientSocket;
     }
 
-    public void setClientSocket(Socket clientSocket) {
-        this.clientSocket = clientSocket;
-    }
-
-    public InputStream getInputStream() {
-        return inputStream;
-    }
-
-    public void setInputStream(InputStream inputStream) {
-        this.inputStream = inputStream;
-    }
-
     public OutputStream getOutputStream() {
         return outputStream;
-    }
-
-    public void setOutputStream(OutputStream outputStream) {
-        this.outputStream = outputStream;
     }
 
     @Override
@@ -113,6 +81,7 @@ public class ServerWorker implements Runnable {
         try {
             handleClientSocket();
         } catch (IOException e) {
+            Server.getWorkerArrayList().remove(this);
             System.err.println("Connection Interrupted for " + this.getUserHandle());
         }
     }
@@ -154,8 +123,10 @@ public class ServerWorker implements Runnable {
                 send(this, LOGIN_FAILED_ALREADY_LOGGED_IN);
             } else {
                 send(this, LOGIN_SUCCESS);
-                for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
-                    send(this, "online " + serverWorker.getUserHandle());
+                Iterator<ServerWorker> iterator = Server.getWorkerArrayList().iterator();
+                while (iterator.hasNext()) {
+                    ServerWorker serverWorker = iterator.next();
+                    send(iterator, this, "online " + serverWorker.getUserHandle());
                     send(serverWorker, message);
                 }
                 Server.getWorkerArrayList().add(this);
@@ -195,8 +166,10 @@ public class ServerWorker implements Runnable {
             this.getClientSocket().close();
             isLoggedIn = false;
             String msg = "offline " + this.userHandle;
-            for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
-                send(serverWorker, msg);
+            Iterator<ServerWorker> iterator = Server.getWorkerArrayList().iterator();
+            while (iterator.hasNext()) {
+                ServerWorker serverWorker = iterator.next();
+                send(iterator, serverWorker, msg);
             }
         } else {
             send(this, LOGIN_FAILED_NOT_LOGGED_IN);
