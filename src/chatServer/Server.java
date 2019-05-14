@@ -31,6 +31,8 @@ public class Server {
                             System.out.println(serverWorker.getUserHandle());
                         }
 
+                    } else if (adminTokens[0].equalsIgnoreCase("status")) {
+                        System.out.println(serverSocket);
                     }
                 }
                 System.err.println("Admin thread terminated!");
@@ -45,6 +47,14 @@ public class Server {
             Thread serverWorkerThread = new Thread(new ServerWorker(this, clientListener));
             serverWorkerThread.start();
         }
+    }
+
+    public static ArrayList<ServerWorker> getWorkerArrayList() {
+        return workerArrayList;
+    }
+
+    public void setWorkerArrayList(ArrayList<ServerWorker> workerArrayList) {
+        Server.workerArrayList = workerArrayList;
     }
 
     private void handleKick(String adminToken) {
@@ -62,13 +72,5 @@ public class Server {
                 e.printStackTrace();
             }
         }
-    }
-
-    public static ArrayList<ServerWorker> getWorkerArrayList() {
-        return workerArrayList;
-    }
-
-    public void setWorkerArrayList(ArrayList<ServerWorker> workerArrayList) {
-        Server.workerArrayList = workerArrayList;
     }
 }

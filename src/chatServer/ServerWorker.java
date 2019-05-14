@@ -55,6 +55,7 @@ public class ServerWorker implements Runnable {
         while (iterator.hasNext()) {
             ServerWorker next = iterator.next();
             SendReturn send = send(iterator, next, "offline " + sendTo.getUserHandle());
+            System.out.println("ServerWorker : offline" + sendTo.getUserHandle());
             serverWorkerIterator = send.iterator;
         }
         return serverWorkerIterator;
@@ -81,8 +82,13 @@ public class ServerWorker implements Runnable {
         try {
             handleClientSocket();
         } catch (IOException e) {
-            Server.getWorkerArrayList().remove(this);
-            System.err.println("Connection Interrupted for " + this.getUserHandle());
+            System.err.println("ServerWorker : Connection Interrupted for " + this.getUserHandle());
+        } finally {
+            try {
+                handleLogOff();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -98,12 +104,9 @@ public class ServerWorker implements Runnable {
             } else if (tokens[0].equalsIgnoreCase("login")) {
                 handleLogin(tokens);
             } else if (tokens[0].equalsIgnoreCase("exit")) {
-                handleLogOff();
                 break;
             }
-
         }
-        clientSocket.close();
     }
 
     private void handleLogin(String[] tokens) throws IOException {
@@ -154,9 +157,9 @@ public class ServerWorker implements Runnable {
             }
         }
         if (sent) {
-            send(this, "Send Success");
+            send(this, "send success");
         } else {
-            send(this, "Send Failed");
+            send(this, "send failed");
         }
     }
 
