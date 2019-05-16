@@ -99,7 +99,7 @@ public class ServerWorker implements Runnable {
         String lines;
         while ((lines = bufferedReader.readLine()) != null) {
             String[] tokens = lines.split(" ");
-            if (tokens[0].equalsIgnoreCase("msg")) {
+            if (tokens[0].equalsIgnoreCase("send")) {
                 handleMessage(lines);
             } else if (tokens[0].equalsIgnoreCase("login")) {
                 handleLogin(tokens);
