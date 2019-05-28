@@ -103,9 +103,41 @@ public class ServerWorker implements Runnable {
                 handleMessage(lines);
             } else if (tokens[0].equalsIgnoreCase("login")) {
                 handleLogin(tokens);
+            } else if (tokens[0].equalsIgnoreCase("key")) {
+                handleKey(lines);
             } else if (tokens[0].equalsIgnoreCase("exit")) {
                 break;
             }
+        }
+    }
+
+    private void handleKey(String lines) throws IOException {
+        //key @username init p g Xa
+        //key @username reply Xb
+        boolean sent = false;
+        String command = "key ";
+        sendUserCommand(lines, sent, command);
+    }
+
+    private void sendUserCommand(String lines, boolean sent, String command) throws IOException {
+        String[] tokens = lines.split(" ", 3);
+        if (tokens.length == 3) {
+            String userHandle = tokens[1];
+            String messageContent = tokens[2];
+            Iterator<ServerWorker> serverWorkerIterator = Server.getWorkerArrayList().iterator();
+            while (serverWorkerIterator.hasNext()) {
+                ServerWorker serverWorker = serverWorkerIterator.next();
+                if (serverWorker.getUserHandle().equals(userHandle)) {
+                    SendReturn send = send(serverWorkerIterator, serverWorker, command + this.userHandle + " " + messageContent);
+                    sent = send.sent;
+                    serverWorkerIterator = send.iterator;
+                }
+            }
+        }
+        if (sent) {
+            send(this, "send success");
+        } else {
+            send(this, "send failed");
         }
     }
 
@@ -142,25 +174,8 @@ public class ServerWorker implements Runnable {
 
     private void handleMessage(String line) throws IOException {
         boolean sent = false;
-        String[] tokens = line.split(" ", 3);
-        if (tokens.length == 3) {
-            String userHandle = tokens[1];
-            String messageContent = tokens[2];
-            Iterator<ServerWorker> serverWorkerIterator = Server.getWorkerArrayList().iterator();
-            while (serverWorkerIterator.hasNext()) {
-                ServerWorker serverWorker = serverWorkerIterator.next();
-                if (serverWorker.getUserHandle().equals(userHandle)) {
-                    SendReturn send = send(serverWorkerIterator, serverWorker, "message " + this.userHandle + " " + messageContent);
-                    sent = send.sent;
-                    serverWorkerIterator = send.iterator;
-                }
-            }
-        }
-        if (sent) {
-            send(this, "send success");
-        } else {
-            send(this, "send failed");
-        }
+        String command = "message ";
+        sendUserCommand(line, sent, command);
     }
 
     private void handleLogOff() throws IOException {
