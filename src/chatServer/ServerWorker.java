@@ -116,10 +116,10 @@ public class ServerWorker implements Runnable {
         //key @username reply Xb
         boolean sent = false;
         String command = "key ";
-        sendUserCommand(lines, sent, command);
+        sendUserCommand(lines, sent, command, "key sent");
     }
 
-    private void sendUserCommand(String lines, boolean sent, String command) throws IOException {
+    private void sendUserCommand(String lines, boolean sent, String command, String replyMessage) throws IOException {
         String[] tokens = lines.split(" ", 3);
         if (tokens.length == 3) {
             String userHandle = tokens[1];
@@ -135,9 +135,9 @@ public class ServerWorker implements Runnable {
             }
         }
         if (sent) {
-            send(this, "send success");
+            send(this, replyMessage + " success");
         } else {
-            send(this, "send failed");
+            send(this, replyMessage + " failed");
         }
     }
 
@@ -175,7 +175,7 @@ public class ServerWorker implements Runnable {
     private void handleMessage(String line) throws IOException {
         boolean sent = false;
         String command = "message ";
-        sendUserCommand(line, sent, command);
+        sendUserCommand(line, sent, command, "message sent");
     }
 
     private void handleLogOff() throws IOException {
