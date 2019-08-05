@@ -116,8 +116,75 @@ public class ServerWorker implements Runnable {
                 handleLogin(tokens);
             } else if (tokens[0].equalsIgnoreCase("key")) {
                 handleKey(lines);
+            } else if (tokens[0].equalsIgnoreCase("video")) {
+                handleVideo(tokens);
             } else if (tokens[0].equalsIgnoreCase("exit")) {
                 break;
+            }
+        }
+    }
+
+    private void handleVideo(String[] tokens) throws IOException {
+        //TODO handlevideo
+        /**
+         * if command == video start receiver_username
+         *      send back video init receiver_url
+         *      (sender starts video server destined at receiver_url and port 42070)
+         *      send video start to receiver
+         *      (receiver listens to port 42070 for incoming calls)
+         *if receiver accepts call
+         *      receiver sends video accept sender_username
+         *      send video accept sender_url so that receiver can send his video to receiver
+         *      send video accept receiver to sender so sender can listen for incoming call at port 42071
+         *else if receiver rejects call
+         *      send video reject sender_username receiver_url
+         *when call ends
+         *      send video stop username -1
+         */
+        if (tokens.length == 3) {
+            String command = tokens[1];
+            if (command.equalsIgnoreCase("start")) {
+                String username = tokens[2];
+                Iterator<ServerWorker> serverWorkerIterator = Server.getWorkerArrayList().iterator();
+                while (serverWorkerIterator.hasNext()) {
+                    ServerWorker serverWorker = serverWorkerIterator.next();
+                    if (serverWorker.getUserHandle().equals(username)) {
+                        String sendBackMessage = "video init " + serverWorker.clientSocket.getInetAddress().getHostAddress();
+                        send(this, sendBackMessage);
+//                        System.out.println("ServerWorker 151 : Sending Back " + sendBackMessage);
+                        String sendMessage = "video start " + this.getUserHandle();
+//                        System.out.println("ServerWorker 153 : Sending " + sendMessage);
+                        send(serverWorkerIterator, serverWorker, sendMessage);
+//                        sent = send.sent;
+                    }
+                }
+            } else if (command.equalsIgnoreCase("accept")) {
+                String username = tokens[2];
+                Iterator<ServerWorker> serverWorkerIterator = Server.getWorkerArrayList().iterator();
+                while (serverWorkerIterator.hasNext()) {
+                    ServerWorker serverWorker = serverWorkerIterator.next();
+                    if (serverWorker.getUserHandle().equals(username)) {
+                        String sendBackMessage = "video accept " + serverWorker.clientSocket.getInetAddress().getHostAddress();
+                        send(this, sendBackMessage);
+//                        System.out.println("ServerWorker 151 : Sending Back " + sendBackMessage);
+                        String sendMessage = "video accepted " + this.getUserHandle();
+//                        System.out.println("ServerWorker 153 : Sending " + sendMessage);
+                        send(serverWorkerIterator, serverWorker, sendMessage);
+//                        sent = send.sent;
+                    }
+                }
+            } else if (command.equalsIgnoreCase("end")) {
+                String username = tokens[2];
+                Iterator<ServerWorker> serverWorkerIterator = Server.getWorkerArrayList().iterator();
+                while (serverWorkerIterator.hasNext()) {
+                    ServerWorker serverWorker = serverWorkerIterator.next();
+                    if (serverWorker.getUserHandle().equals(username)) {
+                        String sendMessage = "video end " + this.getUserHandle();
+//                        System.out.println("ServerWorker 153 : Sending " + sendMessage);
+                        send(serverWorkerIterator, serverWorker, sendMessage);
+//                        sent = send.sent;
+                    }
+                }
             }
         }
     }
