@@ -1,7 +1,6 @@
 package chatServer;
 
 import dependencies.lib.UserBean;
-import dependencies.lib.UserDao;
 
 import java.io.*;
 import java.net.Socket;
@@ -77,7 +76,11 @@ public class ServerWorker implements Runnable {
         try {
             handleClientSocket();
         } catch (IOException e) {
-            System.err.println("ServerWorker : Connection Interrupted for " + this.getBean().getUserHandle());
+            try {
+                System.err.println("ServerWorker : Connection Interrupted for " + this.getBean().getUserHandle());
+            } catch (NullPointerException e1) {
+                System.err.println("ServerWorker : Connection Interrupted for " + this.getClientSocket().getRemoteSocketAddress());
+            }
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         } catch (SQLException e) {
@@ -106,6 +109,8 @@ public class ServerWorker implements Runnable {
                 handleMessage(lines);
             } else if (tokens[0].equalsIgnoreCase("login")) {
                 handleLogin(tokens);
+            } else if (tokens[0].equalsIgnoreCase("register")) {
+                handleRegister(tokens);
             } else if (tokens[0].equalsIgnoreCase("key")) {
                 handleKey(lines);
             } else if (tokens[0].equalsIgnoreCase("video")) {
@@ -115,6 +120,7 @@ public class ServerWorker implements Runnable {
             }
         }
     }
+
 
     private void handleVideo(String[] tokens) throws IOException {
         //TODO handlevideo
@@ -214,14 +220,17 @@ public class ServerWorker implements Runnable {
     private void handleLogin(String[] tokens) throws IOException, ClassNotFoundException, SQLException, InvalidKeySpecException, NoSuchAlgorithmException {
         String userHandle = tokens[1];
         String password = tokens[2];
-        UserBean login = UserDao.login(userHandle, password, DbConfig.DB_USERNAME, DbConfig.DB_PASSWORD);
+        UserBean login = new UserBean() {{
+            setUserHandle(tokens[1]);
+            setPassword(tokens[2]);
+        }};
+        login = UserDao.login(login, ServerConfig.DB_USER, ServerConfig.DB_PASS);
         if (login.isValid()) {
             if (isLoggedIn) {
-                send(this, LOGIN_FAILED_LOGGED_IN);
+                send(this, LOGIN_FAILED_LOGGED_IN); //client application is already logged in
             } else if (tokens.length == 3) {
-                //FIXME sending online userhandle~firstname~lastname
                 String message = "online " + login;
-                setBean(login);
+                this.setBean(login);
                 boolean alreadyLoggedIn = false;
                 for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
                     if (serverWorker.getBean().getUserHandle().equals(userHandle)) {
@@ -229,10 +238,9 @@ public class ServerWorker implements Runnable {
                     }
                 }
                 if (alreadyLoggedIn) {
-                    send(this, LOGIN_FAILED_ALREADY_LOGGED_IN);
+                    send(this, LOGIN_FAILED_ALREADY_LOGGED_IN); //client credential is already logged in
                 } else {
                     System.out.println("ServerWorker : Login Success");
-                    //FIXME sending login_success userhandle~firstname~lastname
                     send(this, LOGIN_SUCCESS + ":" + getBean());
                     Iterator<ServerWorker> iterator = Server.getWorkerArrayList().iterator();
                     while (iterator.hasNext()) {
@@ -246,6 +254,38 @@ public class ServerWorker implements Runnable {
             } else {
                 send(this, LOGIN_FAILED_NOT_ENOUGH_TOKENS);
             }
+        }
+    }
+
+    private void handleRegister(String[] tokens) throws IOException, ClassNotFoundException, SQLException, InvalidKeySpecException, NoSuchAlgorithmException {
+        String[] split = tokens[1].split("~");
+        UserBean bean = new UserBean() {{
+            setFirstName(split[0]);
+            setLastName(split[1]);
+            setUserHandle(split[2]);
+            setPassword(split[3]);
+        }};
+        bean = UserDao.register(bean, ServerConfig.DB_USER, ServerConfig.DB_PASS);
+        //FIXME register
+        if (bean.isValid()) {
+            if (isLoggedIn) {
+                send(this, LOGIN_FAILED_LOGGED_IN); //client application is already logged in
+            } else {
+                String message = "online " + bean;
+                this.setBean(bean);
+                System.out.println("ServerWorker : Login Success");
+                send(this, LOGIN_SUCCESS + ":" + getBean());
+                Iterator<ServerWorker> iterator = Server.getWorkerArrayList().iterator();
+                while (iterator.hasNext()) {
+                    ServerWorker serverWorker = iterator.next();
+                    send(iterator, this, "online " + serverWorker.getBean());
+                    send(serverWorker, message);
+                }
+                Server.getWorkerArrayList().add(this);
+                isLoggedIn = true;
+            }
+        } else {
+            System.out.println("Register Failed");
         }
     }
 
