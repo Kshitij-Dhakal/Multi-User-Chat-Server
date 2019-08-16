@@ -26,7 +26,7 @@ class Server {
                 } else if (adminTokens[0].equalsIgnoreCase("ls")) {
                     System.out.println("Online : ");
                     for (ServerWorker serverWorker : getWorkerArrayList()) {
-                        System.out.println(serverWorker.getUserHandle());
+                        System.out.println(serverWorker.getBean().getUserHandle());
                     }
 
                 } else if (adminTokens[0].equalsIgnoreCase("status")) {
@@ -55,7 +55,7 @@ class Server {
         while (serverWorkerIterator.hasNext()) {
             ServerWorker serverWorker = serverWorkerIterator.next();
             try {
-                if (serverWorker.getUserHandle().equals(adminToken)) {
+                if (serverWorker.getBean().getUserHandle().equals(adminToken)) {
                     serverWorker.getClientSocket().close();
                     serverWorkerIterator.remove();
                 } else {

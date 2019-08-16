@@ -20,7 +20,7 @@ public class ServerWorker implements Runnable {
     private boolean isLoggedIn = false;
     private Socket clientSocket;
     private OutputStream outputStream;
-    private String userHandle;
+    private UserBean bean;
 
     ServerWorker(Socket clientSocket) {
         this.clientSocket = clientSocket;
@@ -57,19 +57,11 @@ public class ServerWorker implements Runnable {
     private static Iterator<ServerWorker> sendAll(Iterator<ServerWorker> serverWorkerIterator, ServerWorker sendTo, Iterator<ServerWorker> iterator) throws IOException {
         while (iterator.hasNext()) {
             ServerWorker next = iterator.next();
-            SendReturn send = send(iterator, next, "offline " + sendTo.getUserHandle());
-            System.out.println("ServerWorker : offline" + sendTo.getUserHandle());
+            SendReturn send = send(iterator, next, "offline " + sendTo.getBean().getUserHandle());
+            System.out.println("ServerWorker : offline" + sendTo.getBean().getUserHandle());
             serverWorkerIterator = send.iterator;
         }
         return serverWorkerIterator;
-    }
-
-    public String getUserHandle() {
-        return userHandle;
-    }
-
-    private void setUserHandle(String userHandle) {
-        this.userHandle = userHandle;
     }
 
     Socket getClientSocket() {
@@ -85,7 +77,7 @@ public class ServerWorker implements Runnable {
         try {
             handleClientSocket();
         } catch (IOException e) {
-            System.err.println("ServerWorker : Connection Interrupted for " + this.getUserHandle());
+            System.err.println("ServerWorker : Connection Interrupted for " + this.getBean().getUserHandle());
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         } catch (SQLException e) {
@@ -148,11 +140,11 @@ public class ServerWorker implements Runnable {
                 Iterator<ServerWorker> serverWorkerIterator = Server.getWorkerArrayList().iterator();
                 while (serverWorkerIterator.hasNext()) {
                     ServerWorker serverWorker = serverWorkerIterator.next();
-                    if (serverWorker.getUserHandle().equals(username)) {
+                    if (serverWorker.getBean().getUserHandle().equals(username)) {
                         String sendBackMessage = "video init " + serverWorker.clientSocket.getInetAddress().getHostAddress();
                         send(this, sendBackMessage);
 //                        System.out.println("ServerWorker 151 : Sending Back " + sendBackMessage);
-                        String sendMessage = "video start " + this.getUserHandle();
+                        String sendMessage = "video start " + this.getBean().getUserHandle();
 //                        System.out.println("ServerWorker 153 : Sending " + sendMessage);
                         send(serverWorkerIterator, serverWorker, sendMessage);
 //                        sent = send.sent;
@@ -163,11 +155,11 @@ public class ServerWorker implements Runnable {
                 Iterator<ServerWorker> serverWorkerIterator = Server.getWorkerArrayList().iterator();
                 while (serverWorkerIterator.hasNext()) {
                     ServerWorker serverWorker = serverWorkerIterator.next();
-                    if (serverWorker.getUserHandle().equals(username)) {
+                    if (serverWorker.getBean().getUserHandle().equals(username)) {
                         String sendBackMessage = "video accept " + serverWorker.clientSocket.getInetAddress().getHostAddress();
                         send(this, sendBackMessage);
 //                        System.out.println("ServerWorker 151 : Sending Back " + sendBackMessage);
-                        String sendMessage = "video accepted " + this.getUserHandle();
+                        String sendMessage = "video accepted " + this.getBean().getUserHandle();
 //                        System.out.println("ServerWorker 153 : Sending " + sendMessage);
                         send(serverWorkerIterator, serverWorker, sendMessage);
 //                        sent = send.sent;
@@ -178,8 +170,8 @@ public class ServerWorker implements Runnable {
                 Iterator<ServerWorker> serverWorkerIterator = Server.getWorkerArrayList().iterator();
                 while (serverWorkerIterator.hasNext()) {
                     ServerWorker serverWorker = serverWorkerIterator.next();
-                    if (serverWorker.getUserHandle().equals(username)) {
-                        String sendMessage = "video end " + this.getUserHandle();
+                    if (serverWorker.getBean().getUserHandle().equals(username)) {
+                        String sendMessage = "video end " + this.getBean().getUserHandle();
 //                        System.out.println("ServerWorker 153 : Sending " + sendMessage);
                         send(serverWorkerIterator, serverWorker, sendMessage);
 //                        sent = send.sent;
@@ -205,8 +197,8 @@ public class ServerWorker implements Runnable {
             Iterator<ServerWorker> serverWorkerIterator = Server.getWorkerArrayList().iterator();
             while (serverWorkerIterator.hasNext()) {
                 ServerWorker serverWorker = serverWorkerIterator.next();
-                if (serverWorker.getUserHandle().equals(userHandle)) {
-                    SendReturn send = send(serverWorkerIterator, serverWorker, command + this.userHandle + " " + messageContent);
+                if (serverWorker.getBean().getUserHandle().equals(userHandle)) {
+                    SendReturn send = send(serverWorkerIterator, serverWorker, command + this.getBean().getUserHandle() + " " + messageContent);
                     sent = send.sent;
                     serverWorkerIterator = send.iterator;
                 }
@@ -227,11 +219,12 @@ public class ServerWorker implements Runnable {
             if (isLoggedIn) {
                 send(this, LOGIN_FAILED_LOGGED_IN);
             } else if (tokens.length == 3) {
-                String message = "online " + userHandle;
-                this.setUserHandle(userHandle);
+                //FIXME sending online userhandle~firstname~lastname
+                String message = "online " + login;
+                setBean(login);
                 boolean alreadyLoggedIn = false;
                 for (ServerWorker serverWorker : Server.getWorkerArrayList()) {
-                    if (serverWorker.getUserHandle().equals(userHandle)) {
+                    if (serverWorker.getBean().getUserHandle().equals(userHandle)) {
                         alreadyLoggedIn = true;
                     }
                 }
@@ -239,11 +232,12 @@ public class ServerWorker implements Runnable {
                     send(this, LOGIN_FAILED_ALREADY_LOGGED_IN);
                 } else {
                     System.out.println("ServerWorker : Login Success");
-                    send(this, LOGIN_SUCCESS + ":" + userHandle);
+                    //FIXME sending login_success userhandle~firstname~lastname
+                    send(this, LOGIN_SUCCESS + ":" + getBean());
                     Iterator<ServerWorker> iterator = Server.getWorkerArrayList().iterator();
                     while (iterator.hasNext()) {
                         ServerWorker serverWorker = iterator.next();
-                        send(iterator, this, "online " + serverWorker.getUserHandle());
+                        send(iterator, this, "online " + serverWorker.getBean());
                         send(serverWorker, message);
                     }
                     Server.getWorkerArrayList().add(this);
@@ -265,7 +259,7 @@ public class ServerWorker implements Runnable {
             Server.getWorkerArrayList().remove(this);
             this.getClientSocket().close();
             isLoggedIn = false;
-            String msg = "offline " + this.userHandle;
+            String msg = "offline " + this.getBean().getUserHandle();
             Iterator<ServerWorker> iterator = Server.getWorkerArrayList().iterator();
             while (iterator.hasNext()) {
                 ServerWorker serverWorker = iterator.next();
@@ -284,5 +278,13 @@ public class ServerWorker implements Runnable {
             this.sent = sent;
             this.iterator = iterator;
         }
+    }
+
+    public UserBean getBean() {
+        return bean;
+    }
+
+    public void setBean(UserBean bean) {
+        this.bean = bean;
     }
 }
