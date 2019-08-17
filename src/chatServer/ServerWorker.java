@@ -310,6 +310,14 @@ public class ServerWorker implements Runnable {
         }
     }
 
+    public UserBean getBean() {
+        return bean;
+    }
+
+    public void setBean(UserBean bean) {
+        this.bean = bean;
+    }
+
     private static class SendReturn {
         boolean sent;
         Iterator<ServerWorker> iterator;
@@ -318,13 +326,5 @@ public class ServerWorker implements Runnable {
             this.sent = sent;
             this.iterator = iterator;
         }
-    }
-
-    public UserBean getBean() {
-        return bean;
-    }
-
-    public void setBean(UserBean bean) {
-        this.bean = bean;
     }
 }
