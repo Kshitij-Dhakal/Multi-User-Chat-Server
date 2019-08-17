@@ -147,7 +147,14 @@ public class ServerWorker implements Runnable {
                 while (serverWorkerIterator.hasNext()) {
                     ServerWorker serverWorker = serverWorkerIterator.next();
                     if (serverWorker.getBean().getUserHandle().equals(username)) {
-                        String sendBackMessage = "video init " + serverWorker.clientSocket.getInetAddress().getHostAddress();
+                        String[] remote = serverWorker.getClientSocket().getRemoteSocketAddress().toString().split(":");
+                        String remoteIP = remote[0].substring(1);
+                        //FIXME test receiver's ip address
+                        if (remote[0].substring(1).equalsIgnoreCase("127.0.0.1")) {
+                            remoteIP = this.getClientSocket().getLocalAddress().getHostAddress();
+                        }
+                        String sendBackMessage = "video init " + remoteIP;
+                        System.out.println("Receiver's Username : "+serverWorker.getBean().getUserHandle()+" Receiver's IP : "+remoteIP);
                         send(this, sendBackMessage);
 //                        System.out.println("ServerWorker 151 : Sending Back " + sendBackMessage);
                         String sendMessage = "video start " + this.getBean().getUserHandle();
@@ -162,7 +169,13 @@ public class ServerWorker implements Runnable {
                 while (serverWorkerIterator.hasNext()) {
                     ServerWorker serverWorker = serverWorkerIterator.next();
                     if (serverWorker.getBean().getUserHandle().equals(username)) {
-                        String sendBackMessage = "video accept " + serverWorker.clientSocket.getInetAddress().getHostAddress();
+                        String[] remote = serverWorker.getClientSocket().getRemoteSocketAddress().toString().split(":");
+                        String remoteIP = remote[0].substring(1);
+                        //FIXME test receiver's ip address
+                        if (remote[0].substring(1).equalsIgnoreCase("127.0.0.1")) {
+                            remoteIP = this.getClientSocket().getLocalAddress().getHostAddress();
+                        }
+                        String sendBackMessage = "video accept " + remoteIP;
                         send(this, sendBackMessage);
 //                        System.out.println("ServerWorker 151 : Sending Back " + sendBackMessage);
                         String sendMessage = "video accepted " + this.getBean().getUserHandle();
