@@ -1,5 +1,6 @@
 package chatServer;
 
+import dependencies.Listeners.InterruptListener;
 import dependencies.lib.UserBean;
 
 import java.io.*;
@@ -7,6 +8,7 @@ import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Iterator;
 
 public class ServerWorker implements Runnable {
@@ -16,6 +18,7 @@ public class ServerWorker implements Runnable {
     private static final String LOGIN_FAILED_ALREADY_LOGGED_IN = "login failed alreadyLoggedIn";
     private static final String LOGIN_FAILED_NOT_ENOUGH_TOKENS = "login failed notEnoughTokens";
 
+    private static ArrayList<InterruptListener> listeners = new ArrayList<>();
     private boolean isLoggedIn = false;
     private Socket clientSocket;
     private OutputStream outputStream;
@@ -154,7 +157,7 @@ public class ServerWorker implements Runnable {
                             remoteIP = this.getClientSocket().getLocalAddress().getHostAddress();
                         }
                         String sendBackMessage = "video init " + remoteIP;
-                        System.out.println("Receiver's Username : "+serverWorker.getBean().getUserHandle()+" Receiver's IP : "+remoteIP);
+                        System.out.println("Receiver's Username : " + serverWorker.getBean().getUserHandle() + " Receiver's IP : " + remoteIP);
                         send(this, sendBackMessage);
 //                        System.out.println("ServerWorker 151 : Sending Back " + sendBackMessage);
                         String sendMessage = "video start " + this.getBean().getUserHandle();
@@ -312,7 +315,8 @@ public class ServerWorker implements Runnable {
             Server.getWorkerArrayList().remove(this);
             this.getClientSocket().close();
             isLoggedIn = false;
-            String msg = "offline " + this.getBean().getUserHandle();
+            String msg = "offline " + this.getBean().getUserHandle() + "~" + this.getBean().getFirstName()+
+            "~" + this.bean.getLastName();
             Iterator<ServerWorker> iterator = Server.getWorkerArrayList().iterator();
             while (iterator.hasNext()) {
                 ServerWorker serverWorker = iterator.next();
@@ -338,6 +342,16 @@ public class ServerWorker implements Runnable {
         SendReturn(boolean sent, Iterator<ServerWorker> iterator) {
             this.sent = sent;
             this.iterator = iterator;
+        }
+    }
+
+    public void addInterruptListener(InterruptListener listener) {
+        listeners.add(listener);
+    }
+
+    public void sendInterrupt(String username) {
+        for (InterruptListener listener : listeners) {
+            listener.connectionInterrupted(username);
         }
     }
 }
