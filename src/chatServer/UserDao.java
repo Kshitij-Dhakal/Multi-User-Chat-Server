@@ -38,7 +38,6 @@ public class UserDao {
     }
 
     public static UserBean register(UserBean bean, String db_username, String db_password) throws ClassNotFoundException, SQLException, InvalidKeySpecException, NoSuchAlgorithmException {
-        //FIXME handle register in the server
         Connection con = ConnectionManager.getConnection(db_username, db_password);
         String userHandle = bean.getUserHandle();
         String sql = "SELECT user_handle FROM users WHERE user_handle='" + userHandle + "'";

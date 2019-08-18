@@ -126,7 +126,6 @@ public class ServerWorker implements Runnable {
 
 
     private void handleVideo(String[] tokens) throws IOException {
-        //TODO handlevideo
         /**
          * if command == video start receiver_username
          *      send back video init receiver_url
@@ -152,7 +151,6 @@ public class ServerWorker implements Runnable {
                     if (serverWorker.getBean().getUserHandle().equals(username)) {
                         String[] remote = serverWorker.getClientSocket().getRemoteSocketAddress().toString().split(":");
                         String remoteIP = remote[0].substring(1);
-                        //FIXME test receiver's ip address
                         if (remote[0].substring(1).equalsIgnoreCase("127.0.0.1")) {
                             remoteIP = this.getClientSocket().getLocalAddress().getHostAddress();
                         }
@@ -174,7 +172,6 @@ public class ServerWorker implements Runnable {
                     if (serverWorker.getBean().getUserHandle().equals(username)) {
                         String[] remote = serverWorker.getClientSocket().getRemoteSocketAddress().toString().split(":");
                         String remoteIP = remote[0].substring(1);
-                        //FIXME test receiver's ip address
                         if (remote[0].substring(1).equalsIgnoreCase("127.0.0.1")) {
                             remoteIP = this.getClientSocket().getLocalAddress().getHostAddress();
                         }
@@ -282,7 +279,6 @@ public class ServerWorker implements Runnable {
             setPassword(split[3]);
         }};
         bean = UserDao.register(bean, ServerConfig.DB_USER, ServerConfig.DB_PASS);
-        //FIXME register
         if (bean.isValid()) {
             if (isLoggedIn) {
                 send(this, LOGIN_FAILED_LOGGED_IN); //client application is already logged in
