@@ -11,7 +11,7 @@ public class ConnectionManager {
         String dbURL = ServerConfig.DB_URL;
         String dbName = ServerConfig.DB_NAME;
         Class.forName(dbDriver);
-        Connection con = DriverManager.getConnection(dbURL + dbName, dbUsername, dbPassword);
+        Connection con = DriverManager.getConnection(dbURL + dbName+"?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC", dbUsername, dbPassword);
         return con;
     }
 }
